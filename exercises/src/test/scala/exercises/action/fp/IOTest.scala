@@ -27,7 +27,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
   }
 
   // replace `ignore` by `test` to enable this test
-  ignore("andThen") {
+  test("andThen") {
     var counter = 0
 
     val first  = IO(counter += 1)
@@ -40,7 +40,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
     assert(counter == 2) // first and second were executed in the expected order
   }
 
-  ignore("map") {
+  test("map") {
     var counter = 0
 
     val first  = IO(counter += 1)
@@ -51,7 +51,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
     assert(counter == 1) // first was executed
   }
 
-  ignore("flatMap") {
+  test("flatMap") {
     var counter = 0
 
     val first  = IO(counter += 1)
@@ -70,14 +70,14 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
 
   test("onError") {}
 
-  ignore("retry, maxAttempt must be greater than 0") {
+  test("retry, maxAttempt must be greater than 0") {
     val retryAction = IO(1).retry(0)
     val result      = Try(retryAction.unsafeRun())
 
     assert(result.isFailure)
   }
 
-  ignore("retry until action succeeds") {
+  test("retry until action succeeds") {
     var counter = 0
     val error   = new Exception("Boom")
     val action = IO {
@@ -94,7 +94,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
     assert(counter == 3)
   }
 
-  ignore("retry fails if maxAttempt is too low") {
+  test("retry fails if maxAttempt is too low") {
     var counter = 0
     val error   = new Exception("Boom")
     val action = IO {
@@ -200,7 +200,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
   //////////////////////////////////////////////
 
   // flaky
-  ignore("parZip second faster than first") {
+  test("parZip second faster than first") {
     var counter = 0
 
     val first  = IO.sleep(10.millis) *> IO { counter += 1; counter }
@@ -214,7 +214,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
   }
 
   // flaky
-  ignore("parZip first faster than second") {
+  test("parZip first faster than second") {
     var counter = 0
 
     val first  = IO { counter += 1; counter }
@@ -228,7 +228,7 @@ class IOTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
   }
 
   // flaky
-  ignore("parSequence") {
+  test("parSequence") {
     var counter = 0
 
     val action = List(
