@@ -15,7 +15,7 @@ object UserCreationServiceApp extends App {
   val clock   = Clock.system
   val service = new UserCreationService(console, clock)
 
-  service.readUser.unsafeRun()
+  service.readUser(1).unsafeRun()
 }
 
 class UserCreationService(console: Console, clock: Clock) {
@@ -31,40 +31,66 @@ class UserCreationService(console: Console, clock: Clock) {
   // Then, we'll refactor `readName` with `andThen`.
   // Note: You can find tests in `exercises.action.fp.console.UserCreationServiceTest`
   val readName: IO[String] =
-    IO {
-      console.writeLine("What's your name?").unsafeRun()
-      console.readLine.unsafeRun()
-    }
+    IO(console.writeLine("What's your name?").andThen(console.readLine).unsafeRun())
 
   // 2. Refactor `readDateOfBirth` so that the code combines the three internal `IO`
   // instead of executing each `IO` one after another using `unsafeRun`.
   // For example, try to use `andThen`.
   // If it doesn't work investigate the methods `map` and `flatMap` on the `IO` trait.
   val readDateOfBirth: IO[LocalDate] =
-    IO {
-      console.writeLine("What's your date of birth? [dd-mm-yyyy]").unsafeRun()
-      val line = console.readLine.unsafeRun()
-      parseDateOfBirth(line).unsafeRun()
-    }
+//    console
+//      .writeLine("What's your date of birth? [dd-mm-yyyy]")
+//      .andThen(console.readLine)
+//      .flatMap(parseDateOfBirth)
+    for {
+      _           <- console.writeLine("What's your date of birth? [dd-mm-yyyy]")
+      input       <- console.readLine
+      dateOfBirth <- parseDateOfBirth(input)
+    } yield dateOfBirth
 
   // 3. Refactor `readSubscribeToMailingList` and `readUser` using the same techniques as `readDateOfBirth`.
   val readSubscribeToMailingList: IO[Boolean] =
-    IO {
-      console.writeLine("Would you like to subscribe to our mailing list? [Y/N]").unsafeRun()
-      val line = console.readLine.unsafeRun()
-      parseLineToBoolean(line).unsafeRun()
-    }
+//    console
+//      .writeLine("Would you like to subscribe to our mailing list? [Y/N]")
+//      .andThen(console.readLine)
+//      .flatMap(parseLineToBoolean)
+    for {
+      _                        <- console.writeLine("Would you like to subscribe to our mailing list? [Y/N]")
+      input                    <- console.readLine
+      isSubscribeToMailingList <- parseLineToBoolean(input)
+    } yield isSubscribeToMailingList
 
-  val readUser: IO[User] =
-    IO {
-      val name        = readName.unsafeRun()
-      val dateOfBirth = readDateOfBirth.unsafeRun()
-      val subscribed  = readSubscribeToMailingList.unsafeRun()
-      val now         = clock.now.unsafeRun()
-      val user        = User(name, dateOfBirth, subscribed, now)
-      console.writeLine(s"User is $user").unsafeRun()
-      user
-    }
+  def readUser(maxAttempt: Int): IO[User] =
+//    IO {
+//      val name        = readName.unsafeRun()
+//      val dateOfBirth = readDateOfBirth.unsafeRun()
+//      val subscribed  = readSubscribeToMailingList.unsafeRun()
+//      val now         = clock.now.unsafeRun()
+//      val user        = User(name, dateOfBirth, subscribed, now)
+//      console.writeLine(s"User is $user").unsafeRun()
+//      user
+//    }
+
+//    readName
+//      .retry(maxAttempt)
+//      .flatMap { name =>
+//        readDateOfBirth.retry(maxAttempt).flatMap { dateOfBirth =>
+//          readSubscribeToMailingList.retry(maxAttempt).flatMap { subscribed =>
+//            clock.now.flatMap { now =>
+//              val user = User(name, dateOfBirth, subscribed, now)
+//              console.writeLine(s"User is $user").map(_ => user)
+//            }
+//          }
+//        }
+//      }
+    for {
+      name        <- readName.retry(maxAttempt)
+      dateOfBirth <- readDateOfBirth.retry(maxAttempt)
+      subscribed  <- readSubscribeToMailingList.retry(maxAttempt)
+      now         <- clock.now.retry(maxAttempt)
+      user = User(name, dateOfBirth, subscribed, now)
+      _ <- console.writeLine(s"User is $user").retry(maxAttempt)
+    } yield user
 
   //////////////////////////////////////////////
   // PART 2: For Comprehension

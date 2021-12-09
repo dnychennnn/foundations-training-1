@@ -124,14 +124,14 @@ class UserCreationServiceTest extends AnyFunSuite with ScalaCheckDrivenPropertyC
       val clock   = Clock.constant(now)
       val service = new UserCreationService(console, clock)
 
-      val result   = Try(service.readUser.unsafeRun())
+      val result   = Try(service.readUser(1).unsafeRun())
       val expected = User(name, dob, yesNo, now)
 
       assert(result == Success(expected))
     }
   }
 
-  ignore("readUser with retry") {
+  test("readUser with retry") {
     forAll(
       arbitrary[String],
       Gen.listOf(invalidDateGen),
@@ -149,7 +149,7 @@ class UserCreationServiceTest extends AnyFunSuite with ScalaCheckDrivenPropertyC
       val clock       = Clock.constant(now)
       val service     = new UserCreationService(console, clock)
 
-      val result   = Try(service.readUser.unsafeRun())
+      val result   = Try(service.readUser(3).unsafeRun())
       val expected = User(name, dob, yesNo, now)
 
       if (invalidDates.size >= 3 || invalidYesNo.size >= 3)

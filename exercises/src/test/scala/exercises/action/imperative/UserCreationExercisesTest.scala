@@ -17,7 +17,7 @@ import scala.util.{Failure, Success, Try}
 // testOnly exercises.action.imperative.UserCreationExercisesTest
 class UserCreationExercisesTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks {
 
-  ignore("readSubscribeToMailingList example") {
+  test("readSubscribeToMailingList example") {
     val inputs  = ListBuffer("N")
     val outputs = ListBuffer.empty[String]
     val console = Console.mock(inputs, outputs)
@@ -27,55 +27,104 @@ class UserCreationExercisesTest extends AnyFunSuite with ScalaCheckDrivenPropert
     assert(outputs.toList == List("Would you like to subscribe to our mailing list? [Y/N]"))
   }
 
-  ignore("readSubscribeToMailingList example failure") {
+  test("readSubscribeToMailingList example failure") {
     val console = Console.mock(ListBuffer("Never"), ListBuffer())
     val result  = Try(readSubscribeToMailingList(console))
 
     assert(result.isFailure)
   }
 
-  ignore("readDateOfBirth example success") {
+  test("readDateOfBirth example success") {
     val console = Console.mock(ListBuffer("21-07-1986"), ListBuffer())
     val result  = readDateOfBirth(console)
 
     assert(result == LocalDate.of(1986, 7, 21))
   }
 
-  ignore("readDateOfBirth example failure") {
+  test("readDateOfBirth example failure") {
     val console = Console.mock(ListBuffer("21/07/1986"), ListBuffer())
     val result  = Try(readDateOfBirth(console))
 
     assert(result.isFailure)
   }
 
-  ignore("readUser example") {
+  test("PBT: readDateOfBirth Failure") {
+    forAll { (dateOfBirth: String) =>
+      val console = Console.mock(ListBuffer(dateOfBirth), ListBuffer())
+      val result  = Try(readDateOfBirth(console))
+
+      assert(result.isFailure)
+    }
+  }
+
+  val dateGen: Gen[LocalDate] = Gen
+    .choose(LocalDate.of(1900, 1, 1).toEpochDay, LocalDate.MAX.toEpochDay)
+    .map(LocalDate.ofEpochDay)
+  test("PBT: readDateOfBirth Success round-trip") {
+    forAll(dateGen) { (dateOfBirth: LocalDate) =>
+      val input   = dateOfBirthFormatter.format(dateOfBirth)
+      val console = Console.mock(ListBuffer(input), ListBuffer())
+      val result  = readDateOfBirth(console)
+
+      assert(result == dateOfBirth)
+    }
+  }
+
+  test("readUser example") {
     val inputs  = ListBuffer("Eda", "18-03-2001", "Y")
     val outputs = ListBuffer.empty[String]
     val console = Console.mock(inputs, outputs)
-    val result  = readUser(console)
+    val time    = Clock.constant(Instant.EPOCH)
+    val result  = readUser(console, time)
 
     val expected = User(
       name = "Eda",
       dateOfBirth = LocalDate.of(2001, 3, 18),
-//      subscribedToMailingList = true,
-      createdAt = Instant.now()
+      subscribedToMailingList = true,
+      createdAt = Instant.EPOCH
     )
 
     assert(result == expected)
+  }
+
+  test("PBT: readUser round-trip") {
+    forAll { (name: String, dateOfBirth: LocalDate, subscribedToMailingList: Boolean) =>
+      val inputs = ListBuffer(
+        name,
+        dateOfBirth.format(dateOfBirthFormatter),
+        subscribedToMailingList match {
+          case true  => "Y"
+          case false => "N"
+        }
+      )
+      val outputs = ListBuffer.empty[String]
+      val console = Console.mock(inputs, outputs)
+      val time    = Clock.constant(Instant.parse("2001-03-18T00:00:00Z"))
+      val result  = readUser(console, time)
+
+      val expected = User(
+        name = name,
+        dateOfBirth = dateOfBirth,
+        subscribedToMailingList = subscribedToMailingList,
+        createdAt = time.now()
+      )
+
+      assert(result == expected)
+    }
   }
 
   //////////////////////////////////////////////
   // PART 2: Error handling
   //////////////////////////////////////////////
 
-  ignore("readSubscribeToMailingListRetry negative maxAttempt") {
+  test("readSubscribeToMailingListRetry negative maxAttempt") {
     val console = Console.mock(ListBuffer.empty[String], ListBuffer.empty[String])
     val result  = Try(readSubscribeToMailingListRetry(console, maxAttempt = -1))
 
     assert(result.isFailure)
   }
 
-  ignore("readSubscribeToMailingListRetry example success") {
+  test("readSubscribeToMailingListRetry example success") {
     val outputs = ListBuffer.empty[String]
     val console = Console.mock(ListBuffer("Never", "N"), outputs)
     val result  = readSubscribeToMailingListRetry(console, maxAttempt = 2)
@@ -90,7 +139,7 @@ class UserCreationExercisesTest extends AnyFunSuite with ScalaCheckDrivenPropert
     )
   }
 
-  ignore("readSubscribeToMailingListRetry example invalid input") {
+  test("readSubscribeToMailingListRetry example invalid input") {
     val outputs = ListBuffer.empty[String]
     val console = Console.mock(ListBuffer("Never"), outputs)
     val result  = Try(readSubscribeToMailingListRetry(console, maxAttempt = 1))
@@ -109,14 +158,14 @@ class UserCreationExercisesTest extends AnyFunSuite with ScalaCheckDrivenPropert
     assert(result.failed.get.getMessage == result2.failed.get.getMessage)
   }
 
-  ignore("readDateOfBirthRetry negative maxAttempt") {
+  test("readDateOfBirthRetry negative maxAttempt") {
     val console = Console.mock(ListBuffer.empty[String], ListBuffer.empty[String])
     val result  = Try(readSubscribeToMailingListRetry(console, maxAttempt = -1))
 
     assert(result.isFailure)
   }
 
-  ignore("readDateOfBirthRetry example success") {
+  test("readDateOfBirthRetry example success") {
     val outputs = ListBuffer.empty[String]
     val console = Console.mock(ListBuffer("July 21st 1986", "21-07-1986"), outputs)
     val result  = readDateOfBirthRetry(console, maxAttempt = 2)
@@ -131,7 +180,7 @@ class UserCreationExercisesTest extends AnyFunSuite with ScalaCheckDrivenPropert
     )
   }
 
-  ignore("readDateOfBirthRetry example failure") {
+  test("readDateOfBirthRetry example failure") {
     val outputs        = ListBuffer.empty[String]
     val invalidAttempt = "July 21st 1986"
     val console        = Console.mock(ListBuffer(invalidAttempt), outputs)
