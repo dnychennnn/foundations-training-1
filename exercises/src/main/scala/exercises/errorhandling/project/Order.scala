@@ -28,7 +28,9 @@ case class Order(
   // `checkout` requires the order to be in the "Draft" status, otherwise it returns an `InvalidStatus` error.
   // `checkout` requires the order to contain at least one item, otherwise it returns an `EmptyBasket` error.
   def checkout: Either[OrderError, Order] =
-    ???
+    if (basket.isEmpty) Left(EmptyBasket)
+    else if (status == "Draft") Right(copy(status = "Checkout"))
+    else Left(InvalidStatus(status))
 
   def updateDeliveryAddress(address: Address): Either[OrderError, Order] =
     status match {
@@ -42,7 +44,13 @@ case class Order(
   // have the field `submittedAt` defined.
   // Note: You may need to extend `OrderError`
   def submit(now: Instant): Either[OrderError, Order] =
-    ???
+    if (basket.isEmpty) Left(EmptyBasket)
+    else
+      (status, deliveryAddress) match {
+        case ("Checkout", Some(_)) => Right(copy(status = "Submitted", submittedAt = Some(now)))
+        case (_, None)             => Left(NoAddress(id))
+        case _                     => Left(InvalidStatus(status))
+      }
 
   // 3. Implement `deliver` which attempts to move the `Order` to "Delivered" status.
   // `deliver` requires the order to be in the "Submitted" status.
