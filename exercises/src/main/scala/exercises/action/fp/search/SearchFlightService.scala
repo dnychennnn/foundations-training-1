@@ -26,8 +26,10 @@ object SearchFlightService {
   def fromTwoClients(client1: SearchFlightClient, client2: SearchFlightClient): SearchFlightService =
     new SearchFlightService {
       def search(from: Airport, to: Airport, date: LocalDate): IO[SearchResult] =
-        ???
-
+        for {
+          flights1 <- client1.search(from, to, date).handleErrorWith(e => IO(Nil))
+          flights2 <- client2.search(from, to, date).handleErrorWith(e => IO(Nil))
+        } yield SearchResult(flights1 ++ flights2)
     }
 
   // 2. Several clients can return data for the same flight. For example, if we combine data
@@ -47,7 +49,24 @@ object SearchFlightService {
   def fromClients(clients: List[SearchFlightClient]): SearchFlightService =
     new SearchFlightService {
       def search(from: Airport, to: Airport, date: LocalDate): IO[SearchResult] =
-        ???
+//        IO.sequence(
+//          clients
+//            .map(client => client.search(from, to, date).handleErrorWith(_ => IO(Nil)))
+//        ).map(_.flatten)
+//          .map(SearchResult(_))
+        IO.traverse(clients)(client => client.search(from, to, date).handleErrorWith(_ => IO(Nil)))
+          .map(_.flatten)
+          .map(SearchResult(_))
+
+//        clients
+//          .map(client => client.search(from, to, date).handleErrorWith(_ => IO(Nil)))
+//          .foldLeft(IO(List.empty[Flight]))((pre, cur) =>
+//            for {
+//              preFlights <- pre
+//              curFlights <- cur
+//            } yield preFlights ++ curFlights
+//          )
+//          .map(SearchResult(_))
     }
 
   // 5. Refactor `fromClients` using `sequence` or `traverse` from the `IO` companion object.

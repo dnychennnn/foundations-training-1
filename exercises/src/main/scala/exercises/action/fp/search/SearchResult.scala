@@ -8,6 +8,7 @@ case class SearchResult(flights: List[Flight]) {
 }
 
 object SearchResult {
+  def apply(flights: List[Flight]): SearchResult = new SearchResult(flights.sorted(SearchResult.bestOrdering))
   // Order by number of stops (0, 1, 2, ...) and then by price.
   // For example, sorting the following flights
   // flight A: 2 stops, 100$
